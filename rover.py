@@ -3,8 +3,6 @@
 #this is a simple raspberry pi zero rover
 #that communicates with a controller app
 #via HC-06 serial bluetooth module
-#this branch the movement is conducted via pwm
-
 
 import os, sys, time, RPi.GPIO as G
 import threading as thr
@@ -41,10 +39,7 @@ PIN_PWM_B = 24
 PWM_A = None
 PWM_B = None
 
-#pwm frequency 
-FREQ = 10000
-
-#pwm speed ratio of inner wheels while turning
+#pwm speed ratio of inner wheels
 T_RATIO = 10
 
 #delay how long to run the motors 
@@ -101,6 +96,7 @@ def serial_setup():
 
 
 def terminate():
+  global ser_dev
   global EXIT_SCRIPT
 
   print thr.activeCount()
@@ -120,12 +116,18 @@ def button_callback(btn):
 
 ###  GPIO SETUP ###
 def gpio_setup():
-
-  #set pin numbering mode to Broadcom
+#set pin numbering mode to Broadcom
   G.setmode(G.BCM)
+#TODO delete
+### Used for testing purposes only ###
+#set BUTTON pin to input
+#			set internal pull up resistor
+#		      	|
+#			v
+#  G.setup(BUTTON, G.IN, pull_up_down=G.PUD_UP)
+#  G.setup(BUTTON1, G.IN, pull_up_down=G.PUD_UP)
 
-  global PWM_A
-  global PWM_B 
+  
 
 
 #set pin modes to output
@@ -144,92 +146,83 @@ def gpio_setup():
   G.add_event_detect(BUTTON, G.FALLING, callback=button_callback)
 
 #setup pwm
-  PWM_A = G.PWM(PIN_PWM_A, FREQ)
-  PWM_B = G.PWM(PIN_PWM_B, FREQ)
-  PWM_A.start(0)
-  PWM_B.start(0)
+  #PWM_A = G.PWM(PIN_PWM_A, FREQ)
+  #PWM_B = G.PWM(PIN_PWM_B, FREQ)
+  #PWM_A.start(50)
+  #PWM_B.start(50)
 
+
+#TODO delete
+def toggleGPIO(state, pin):
+  G.output(pin, True)
+  print "PIN %d" %pin + "LED ON"
+  time.sleep(0.005)
+  G.output(pin, False)
+  print "PIN %d" %pin +"LED OFF"
 
 #function for moving forward
 def move(duty_cycle=None, direction=None, turn=None):
 
-  global PWM_A
-  global PWM_B 
-
-
   #move forward
   if turn == None and direction == True:
-    print "fwd %d" %duty_cycle
+    print "fwd"
     G.output(PIN_FWD_A, True)
     G.output(PIN_FWD_B, True)
-    
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle)
+    G.output(PIN_PWM_A, True)
+    G.output(PIN_PWM_B, True)
     
     time.sleep(DELAY)
     
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
+    G.output(PIN_PWM_A, False)
+    G.output(PIN_PWM_B, False)
     G.output(PIN_FWD_A, False)
     G.output(PIN_FWD_B, False)
 
   #move in reverse
   elif turn == None and direction == False:
-    print "rev %d" %duty_cycle
+    print "rev"
     G.output(PIN_REV_A, True)
     G.output(PIN_REV_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle)
+    G.output(PIN_PWM_A, True)
+    G.output(PIN_PWM_B, True)
 
     time.sleep(DELAY)
 
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
+    G.output(PIN_PWM_A, False)
+    G.output(PIN_PWM_B, False)
     G.output(PIN_REV_A, False)
     G.output(PIN_REV_B, False)
 
   #turn right (forward right)
   elif turn == True and direction == True:
-    print "right %d" %duty_cycle
-    G.output(PIN_FWD_A, True)
+    print "right"
     G.output(PIN_FWD_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle/T_RATIO)
-    PWM_B.ChangeDutyCycle(duty_cycle)
+    G.output(PIN_PWM_B, True)
      
     time.sleep(DELAY)
 
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
+    G.output(PIN_PWM_B, False)
     G.output(PIN_FWD_B, False)
-    G.output(PIN_FWD_A, False)
 
   #turn left (forward left)
   elif turn == False and direction == True:
-    print "left %d" %duty_cycle
+    print "left"
     G.output(PIN_FWD_A, True)
-    G.output(PIN_FWD_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle/T_RATIO)
+    G.output(PIN_PWM_A, True)
      
     time.sleep(DELAY)
     
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
+    G.output(PIN_PWM_A, False)
     G.output(PIN_FWD_A, False)
-    G.output(PIN_FWD_B, False)
+
+  else:
+    pass
 
 
 def main():
   global EXIT_SCRIPT
-  global ser_dev 
   global OK
+  global ser_dev 
  
   if serial_setup() == True:
     gpio_setup()
@@ -238,16 +231,18 @@ def main():
 
   
   while not EXIT_SCRIPT:
+    #TODO read serial and perform action
     try:
       c = ser_dev.read()
-      
-      # set ok to true opon successful data read
+
       OK = True
 
       if OK:
         G.output(LED_OK, OK)
       else:
         G.output(LED_OK, OK)
+
+
 
       if c == "W":
         print "read in: %s" %c
