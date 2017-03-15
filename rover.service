@@ -1,0 +1,17 @@
+[Unit]
+Description="Rover Service"
+After=multi-user.target
+Requires=rover-setup.service
+ConditionPathExists=/home/rover/rover.py
+
+[Service]
+Type=simple
+User=rover
+ExecStart=/usr/bin/python /home/rover/rover.py
+ExecStop=/bin/kill -2 $MAINPID
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+

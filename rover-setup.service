@@ -1,0 +1,12 @@
+[Unit]
+Description="makes /dev/ttyAMA0 readable for group tty"
+Before=multi-user.target
+ConditionPathExists=/dev/ttyAMA0
+
+[Service]
+Type=oneshot
+ExecStart=/bin/chmod g+r /dev/ttyAMA0
+
+[Install]
+RequiredBy=rover.service
+
