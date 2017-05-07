@@ -26,6 +26,7 @@ SER_RATE = 3000000
 #rfcomm socket to listen on
 SER_PATH = "/dev/rfcomm0"
 ser_dev = None
+SER_READY = False
 
 #declaring 'constants'
 #TODO delete
@@ -89,19 +90,24 @@ class MoveThread(thr.Thread):
 #serial device setup
 def serial_setup():
   global SER_PATH
-  global ser_dev 
+  global ser_dev
+  global SER_READY
+ 
   if os.path.exists(SER_PATH) == True:
     try:
       #timeout=0 turns on non-blocking mode
       ser_dev = serial.Serial(SER_PATH, SER_RATE, timeout=0)
       if ser_dev.isOpen():
-        return True
+        SER_READY = True
     except serial.SerialException:
-      ##
-      ser_dev.close()
-      sys.exit() 
+      if ser_dev != None:
+        ser_dev.close()
+      SER_READY = False
+      ser_dev = None
+      #sys.exit() 
   else:
     print SER_PATH + " does not exist"
+    SER_READY = False
     return False
 
 
@@ -235,48 +241,70 @@ def main():
   global EXIT_SCRIPT
   global ser_dev 
   global OK
+  global SER_READY
  
-  if serial_setup() == True:
-    gpio_setup()
-  else: sys.exit()
+# change due to new rfcomm behavior 
+#  if serial_setup() == True:
+#    gpio_setup()
+#  else: sys.exit()
 
+#NOTE:  /dev/rfcomm0 will not be open until another
+#	bluetooth device is connected to our pi zero W.
+# 	Therefore, we have to keep checking until the
+#	controller device connects to us.
+
+
+# setup GPIO
+  gpio_setup()
 
   
   while not EXIT_SCRIPT:
-    try:
-      c = ser_dev.read()
+
+    if ser_dev == None:
+      while SER_READY == False:
+        serial_setup()
+
+    while SER_READY == True:
+      try:
+        c = ser_dev.read()
       
-      # set ok to true opon successful data read
-      OK = True
+        #FIXME add status for waiting for connection 
 
-      if OK:
-        G.output(LED_OK, OK)
-      else:
-        G.output(LED_OK, OK)
+        # set ok to true opon successful data read
+        OK = True
 
-      if c == "W":
-        print "read in: %s" %c
-        fwdThread = MoveThread(target=move, direction=FWD, duty_cycle=100, lock=LOCK_MOVE)
-        fwdThread.start()
-      elif c == "S":
-        print "read in: %s" %c
-        fwdThread = MoveThread(target=move, direction=REV, duty_cycle=100, lock=LOCK_MOVE)
-        fwdThread.start()
-      elif c == "D": 
-        print "read in: %s" %c
-        fwdThread = MoveThread(target=move, direction=FWD, turn=R,  duty_cycle=100, lock=LOCK_MOVE)
-        fwdThread.start()
-      elif c == "A":
-        print "read in: %s" %c
-        fwdThread = MoveThread(target=move, direction=FWD, turn=L, duty_cycle=100, lock=LOCK_MOVE)
-        fwdThread.start()
-      else:
-        #reserved for expaded functionality
-        pass
+        if OK:
+          G.output(LED_OK, OK)
+        else:
+          G.output(LED_OK, OK)
+
+        if c == "W":
+          print "read in: %s" %c
+          fwdThread = MoveThread(target=move, direction=FWD, duty_cycle=100, lock=LOCK_MOVE)
+          fwdThread.start()
+        elif c == "S":
+          print "read in: %s" %c
+          fwdThread = MoveThread(target=move, direction=REV, duty_cycle=100, lock=LOCK_MOVE)
+          fwdThread.start()
+        elif c == "D": 
+          print "read in: %s" %c
+          fwdThread = MoveThread(target=move, direction=FWD, turn=R,  duty_cycle=100, lock=LOCK_MOVE)
+          fwdThread.start()
+        elif c == "A":
+          print "read in: %s" %c
+          fwdThread = MoveThread(target=move, direction=FWD, turn=L, duty_cycle=100, lock=LOCK_MOVE)
+          fwdThread.start()
+        else:
+          #reserved for expaded functionality
+          pass
  
-    except serial.SerialException:
-      ser_dev.close() 
-      EXIT_SCRIPT = True  
+      except serial.SerialException:
+        if ser_dev != None:
+          ser_dev.close()
+	  ser_dev = None
+	  SER_READY = False
+
+        #EXIT_SCRIPT = True  
  
   ser_dev.close(); 
 
@@ -292,13 +320,15 @@ if __name__ == "__main__":
     print "Cleaning up..."
     G.cleanup()
     print "Cleanup complete"
-    print "Powering Off!"
+    # print "Powering Off!"
     # os.system("sudo shutdown -h now")
     
     
   except (KeyboardInterrupt, SystemExit):
+    #EXIT_SCRIPT = True
     print "Cleaning up..."
-    ser_dev.close()
+    if ser_dev != None:
+      ser_dev.close()
     G.cleanup()
     print "Done!"
 
