@@ -1,12 +1,13 @@
 [Unit]
-Description="makes /dev/ttyAMA0 readable for group tty"
+Description="creates rfcomm socket and listens on it"
 Before=multi-user.target
 ConditionPathExists=/dev/ttyAMA0
 
 [Service]
-Type=oneshot
-ExecStart=/bin/chmod g+r /dev/ttyAMA0
+Type=simple
+ExecStart=/usr/bin/rfcomm watch hci0
+ExecStop=/bin/kill -2 $MAINPID
+
 
 [Install]
 RequiredBy=rover.service
-
