@@ -104,6 +104,8 @@ def serial_setup():
         ser_dev.close()
       SER_READY = False
       ser_dev = None
+      #pass
+      sys.exc_clear()
       #sys.exit() 
   else:
     print SER_PATH + " does not exist"
@@ -303,6 +305,8 @@ def main():
           ser_dev.close()
 	  ser_dev = None
 	  SER_READY = False
+          #pass
+          sys.exc_clear()
 
         #EXIT_SCRIPT = True  
  
