@@ -104,9 +104,6 @@ def serial_setup():
         ser_dev.close()
       SER_READY = False
       ser_dev = None
-      #pass
-      sys.exc_clear()
-      #sys.exit() 
   else:
     print SER_PATH + " does not exist"
     SER_READY = False
@@ -115,6 +112,8 @@ def serial_setup():
 
 def terminate():
   global EXIT_SCRIPT
+  global SER_READY
+  global ser_dev
 
   print thr.activeCount()
 
@@ -122,14 +121,18 @@ def terminate():
     time.sleep(0.1)
     print "Sleeping..."
   
+  if ser_dev != None:
+    ser_dev.close()
+    ser_dev = None
 
+  SER_READY = False
   EXIT_SCRIPT = True
 
 
 def button_callback(btn):
   print "BUTTON PRESSED: %d" %btn
-  #print "TERMINATING"
-  #terminate()
+  print "TERMINATING"
+  terminate()
 
 ###  GPIO SETUP ###
 def gpio_setup():
@@ -263,7 +266,7 @@ def main():
   while not EXIT_SCRIPT:
 
     if ser_dev == None:
-      while SER_READY == False:
+      while SER_READY == False and EXIT_SCRIPT == False:
         serial_setup()
 
     while SER_READY == True:
@@ -305,12 +308,10 @@ def main():
           ser_dev.close()
 	  ser_dev = None
 	  SER_READY = False
-          #pass
-          sys.exc_clear()
 
         #EXIT_SCRIPT = True  
- 
-  ser_dev.close(); 
+  if ser_dev != None: 
+    ser_dev.close(); 
 
 #run the program
 if __name__ == "__main__":
@@ -324,8 +325,8 @@ if __name__ == "__main__":
     print "Cleaning up..."
     G.cleanup()
     print "Cleanup complete"
-    # print "Powering Off!"
-    # os.system("sudo shutdown -h now")
+    print "Powering Off!"
+    os.system("sudo shutdown -h now")
     
     
   except (KeyboardInterrupt, SystemExit):
