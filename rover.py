@@ -1,25 +1,30 @@
 #!/usr/bin/python
 
-#this is a simple raspberry pi zero rover
-#that communicates with a controller app
-#via HC-06 serial bluetooth module
-#this branch the movement is conducted via pwm
-
+# This is an updated version of Raspberry Pi Zero rover.
+# This version is tailored towards Raspberry Pi Zero W.
+# It no longer used HC-06 serial bluetooth module,
+# since Pi Zero W has an internal bluetooth adapter.
+# Most of the changes will reflect the used of internal
+# Bluetooth interface.
 
 import os, sys, time, RPi.GPIO as G
 import threading as thr
 import serial
 
 
-VERSION = "Rover 0.1"
+VERSION = "Rover 0.2"
 
 #keeps the main() running
 EXIT_SCRIPT = False
 OK = False
 
 #serial defice specs
-SER_RATE = 115200
-SER_PATH = "/dev/ttyAMA0"
+
+#by default Raspbian hciattach is started at this rate
+SER_RATE = 3000000
+
+#rfcomm socket to listen on
+SER_PATH = "/dev/rfcomm0"
 ser_dev = None
 
 #declaring 'constants'
@@ -115,8 +120,8 @@ def terminate():
 
 def button_callback(btn):
   print "BUTTON PRESSED: %d" %btn
-  print "TERMINATING"
-  terminate()
+  #print "TERMINATING"
+  #terminate()
 
 ###  GPIO SETUP ###
 def gpio_setup():
@@ -288,7 +293,7 @@ if __name__ == "__main__":
     G.cleanup()
     print "Cleanup complete"
     print "Powering Off!"
-    os.system("sudo shutdown -h now")
+    # os.system("sudo shutdown -h now")
     
     
   except (KeyboardInterrupt, SystemExit):
