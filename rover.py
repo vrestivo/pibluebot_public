@@ -104,6 +104,9 @@ def serial_setup():
         ser_dev.close()
       SER_READY = False
       ser_dev = None
+      #pass
+      #sys.exc_clear()
+      #sys.exit() 
   else:
     print SER_PATH + " does not exist"
     SER_READY = False
@@ -207,9 +210,9 @@ def move(duty_cycle=None, direction=None, turn=None):
     G.output(PIN_REV_A, False)
     G.output(PIN_REV_B, False)
 
-  #turn right (forward right)
+  #move forward right
   elif turn == True and direction == True:
-    print "right %d" %duty_cycle
+    print "fwd right %d" %duty_cycle
     G.output(PIN_FWD_A, True)
     G.output(PIN_FWD_B, True)
 
@@ -224,9 +227,9 @@ def move(duty_cycle=None, direction=None, turn=None):
     G.output(PIN_FWD_B, False)
     G.output(PIN_FWD_A, False)
 
-  #turn left (forward left)
+  #move forward left
   elif turn == False and direction == True:
-    print "left %d" %duty_cycle
+    print "fwd left %d" %duty_cycle
     G.output(PIN_FWD_A, True)
     G.output(PIN_FWD_B, True)
 
@@ -240,6 +243,40 @@ def move(duty_cycle=None, direction=None, turn=None):
 
     G.output(PIN_FWD_A, False)
     G.output(PIN_FWD_B, False)
+
+  #move reverse right
+  elif turn == True and direction == False:
+    print "rev right %d" %duty_cycle
+    G.output(PIN_REV_A, True)
+    G.output(PIN_REV_B, True)
+
+    PWM_A.ChangeDutyCycle(duty_cycle/T_RATIO)
+    PWM_B.ChangeDutyCycle(duty_cycle)
+     
+    time.sleep(DELAY)
+
+    PWM_A.ChangeDutyCycle(0)
+    PWM_B.ChangeDutyCycle(0)
+
+    G.output(PIN_REV_B, False)
+    G.output(PIN_REV_A, False)
+
+  #move reverse left
+  elif turn == False and direction == False:
+    print "rev left %d" %duty_cycle
+    G.output(PIN_REV_A, True)
+    G.output(PIN_REV_B, True)
+
+    PWM_A.ChangeDutyCycle(duty_cycle)
+    PWM_B.ChangeDutyCycle(duty_cycle/T_RATIO)
+     
+    time.sleep(DELAY)
+    
+    PWM_A.ChangeDutyCycle(0)
+    PWM_B.ChangeDutyCycle(0)
+
+    G.output(PIN_REV_A, False)
+    G.output(PIN_REV_B, False)
 
 
 def main():
@@ -299,6 +336,16 @@ def main():
           print "read in: %s" %c
           fwdThread = MoveThread(target=move, direction=FWD, turn=L, duty_cycle=100, lock=LOCK_MOVE)
           fwdThread.start()
+        elif c == "C": 
+          print "read in: %s" %c
+          fwdThread = MoveThread(target=move, direction=REV, turn=R,  duty_cycle=100, lock=LOCK_MOVE)
+          fwdThread.start()
+        elif c == "Z":
+          print "read in: %s" %c
+          fwdThread = MoveThread(target=move, direction=REV, turn=L, duty_cycle=100, lock=LOCK_MOVE)
+          fwdThread.start()
+
+
         else:
           #reserved for expaded functionality
           pass
@@ -308,6 +355,8 @@ def main():
           ser_dev.close()
 	  ser_dev = None
 	  SER_READY = False
+          #pass
+          #sys.exc_clear()
 
         #EXIT_SCRIPT = True  
   if ser_dev != None: 
