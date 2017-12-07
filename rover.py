@@ -10,7 +10,7 @@
 import os, sys, time, RPi.GPIO as G
 import threading as thr
 import serial
-
+import re
 
 VERSION = "Rover 0.2"
 
@@ -71,10 +71,10 @@ LOCK_MOVE = thr.Lock()
 
 #extend threading's Thread class to run GPIO movement tasks 
 class MoveThread(thr.Thread):
-  def __init__(self, target=None, direction=None, turn=None,  lock=None, duty_cycle=None):
+  def __init__(self, target=None, x=None, y=None, duty_cycle=None, lock=None):
     self._target = target
-    self._direction = direction
-    self._turn = turn
+    self._x = x
+    self._y = y
     self._lock = lock
     self._duty_cycle = duty_cycle
     super(MoveThread, self).__init__()
@@ -82,7 +82,7 @@ class MoveThread(thr.Thread):
     with self._lock:
       print "Staring "  + self.getName()
       print "There are %d threads running" %thr.activeCount()
-      self._target(self._duty_cycle, self._direction, self._turn)
+      self._target(self._x, self._y, self._duty_cycle)
     print "Done with: " + self.getName()
 
 
@@ -168,7 +168,53 @@ def gpio_setup():
   PWM_A.start(0)
   PWM_B.start(0)
 
+def move(x=None, y=None, duty_cycle=None):
+  global PWM_A
+  global PWM_B
 
+  PIN_A = None
+  PIN_B = None
+
+  left_dc = 0;
+  right_dc = 0;
+
+  #forward 
+  if y > 0:
+    PIN_A = PIN_FWD_A
+    PIN_B = PIN_FWD_B
+  #reverse
+  else:
+    PIN_A = PIN_REV_A
+    PIN_B = PIN_REV_B
+
+  #TODO left/right ratio
+  if x < 0:
+    left_dc = int(x*(-1.0)/100*(duty_cycle))
+    right_dc = duty_cycle
+  else:
+    right_dc = int(x*(1.0)/100*(duty_cycle))
+    left_dc = duty_cycle	
+ 
+  print "PIN_A %d, PIN_B %d" %(PIN_A, PIN_B)
+  print "DC: %d, l_dc, %d r_dc %d" %(duty_cycle, left_dc, right_dc)
+  G.output(PIN_A, True)
+  G.output(PIN_B, True)
+    
+  PWM_A.ChangeDutyCycle(left_dc)
+  PWM_B.ChangeDutyCycle(right_dc)
+    
+  time.sleep(DELAY)
+    
+  PWM_A.ChangeDutyCycle(0)
+  PWM_B.ChangeDutyCycle(0)
+
+  G.output(PIN_A, False)
+  G.output(PIN_B, False)
+
+
+ 
+
+"""
 #function for moving forward
 def move(duty_cycle=None, direction=None, turn=None):
 
@@ -277,7 +323,7 @@ def move(duty_cycle=None, direction=None, turn=None):
 
     G.output(PIN_REV_A, False)
     G.output(PIN_REV_B, False)
-
+"""
 
 def main():
   global EXIT_SCRIPT
@@ -308,7 +354,7 @@ def main():
 
     while SER_READY == True:
       try:
-        c = ser_dev.read()
+        c = ser_dev.readline()
       
         #FIXME add status for waiting for connection 
 
@@ -348,8 +394,15 @@ def main():
 
         else:
           #reserved for expaded functionality
+	  regex = r"((XYR)([\:][\-]?[\d]+)*)"
+	  match = re.match(regex, c)
+	  if match != None:
+	    if match.group(0):
+              print "matched: %s" % match.group(0)
+	      process_data_string(match.group(0))	
           pass
  
+
       except serial.SerialException:
         if ser_dev != None:
           ser_dev.close()
@@ -361,6 +414,21 @@ def main():
         #EXIT_SCRIPT = True  
   if ser_dev != None: 
     ser_dev.close(); 
+
+def process_data_string(data_string):
+  if data_string != None and type(data_string) == type(""):
+    l = data_string.split(":")
+    if len(l)==4:
+      print l
+      x = int(l[1])
+      y = int(l[2])
+      r = int(l[3])
+
+    #TODO
+      fwdThread = MoveThread(target=move, x=x, y=y, duty_cycle=r, lock=LOCK_MOVE)
+      fwdThread.start()
+
+   
 
 #run the program
 if __name__ == "__main__":
@@ -385,4 +453,5 @@ if __name__ == "__main__":
       ser_dev.close()
     G.cleanup()
     print "Done!"
+
 
