@@ -11,6 +11,7 @@ import os, sys, time, RPi.GPIO as G
 import threading as thr
 import serial
 import re
+import time
 
 VERSION = "Rover 0.2"
 
@@ -50,12 +51,8 @@ PWM_B = None
 #pwm frequency 
 FREQ = 10000
 
-#pwm speed ratio of inner wheels while turning
-T_RATIO = 10
-
 #delay how long to run the motors 
-#TODO lower delay
-DELAY = 0.025
+DELAY = 0.00755555
 
 #define right and left diections
 R = True
@@ -188,12 +185,12 @@ def move(x=None, y=None, duty_cycle=None):
     PIN_A = PIN_REV_A
     PIN_B = PIN_REV_B
 
-  #TODO check math
+  #TODO left/right ratio
   if x < 0:
-    left_dc = int(x*(-1.0)/100*(duty_cycle))
+    left_dc = int((x+100)*(1.0)/100*(duty_cycle))
     right_dc = duty_cycle
   else:
-    right_dc = int(x*(1.0)/100*(duty_cycle))
+    right_dc = int((100-x)*(1.0)/100*(duty_cycle))
     left_dc = duty_cycle	
  
   print "PIN_A %d, PIN_B %d" %(PIN_A, PIN_B)
@@ -213,7 +210,14 @@ def move(x=None, y=None, duty_cycle=None):
   G.output(PIN_B, False)
 
 
- 
+def blink_ok_led():
+  G.output(LED_OK, False)
+  G.output(LED_OK, True)
+  time.sleep(.250)
+  G.output(LED_OK, False)
+  time.sleep(.250)
+
+
 def main():
   global EXIT_SCRIPT
   global ser_dev 
@@ -239,9 +243,11 @@ def main():
 
     if ser_dev == None:
       while SER_READY == False and EXIT_SCRIPT == False:
+	blink_ok_led()
         serial_setup()
 
     while SER_READY == True:
+      OK = True
       try:
         c = ser_dev.readline()
       
