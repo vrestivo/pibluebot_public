@@ -54,6 +54,7 @@ FREQ = 10000
 T_RATIO = 10
 
 #delay how long to run the motors 
+#TODO lower delay
 DELAY = 0.025
 
 #define right and left diections
@@ -187,7 +188,7 @@ def move(x=None, y=None, duty_cycle=None):
     PIN_A = PIN_REV_A
     PIN_B = PIN_REV_B
 
-  #TODO left/right ratio
+  #TODO check math
   if x < 0:
     left_dc = int(x*(-1.0)/100*(duty_cycle))
     right_dc = duty_cycle
@@ -213,118 +214,6 @@ def move(x=None, y=None, duty_cycle=None):
 
 
  
-
-"""
-#function for moving forward
-def move(duty_cycle=None, direction=None, turn=None):
-
-  global PWM_A
-  global PWM_B 
-
-
-  #move forward
-  if turn == None and direction == True:
-    print "fwd %d" %duty_cycle
-    G.output(PIN_FWD_A, True)
-    G.output(PIN_FWD_B, True)
-    
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle)
-    
-    time.sleep(DELAY)
-    
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
-    G.output(PIN_FWD_A, False)
-    G.output(PIN_FWD_B, False)
-
-  #move in reverse
-  elif turn == None and direction == False:
-    print "rev %d" %duty_cycle
-    G.output(PIN_REV_A, True)
-    G.output(PIN_REV_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle)
-
-    time.sleep(DELAY)
-
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
-    G.output(PIN_REV_A, False)
-    G.output(PIN_REV_B, False)
-
-  #move forward right
-  elif turn == True and direction == True:
-    print "fwd right %d" %duty_cycle
-    G.output(PIN_FWD_A, True)
-    G.output(PIN_FWD_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle/T_RATIO)
-    PWM_B.ChangeDutyCycle(duty_cycle)
-     
-    time.sleep(DELAY)
-
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
-    G.output(PIN_FWD_B, False)
-    G.output(PIN_FWD_A, False)
-
-  #move forward left
-  elif turn == False and direction == True:
-    print "fwd left %d" %duty_cycle
-    G.output(PIN_FWD_A, True)
-    G.output(PIN_FWD_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle/T_RATIO)
-     
-    time.sleep(DELAY)
-    
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
-    G.output(PIN_FWD_A, False)
-    G.output(PIN_FWD_B, False)
-
-  #move reverse right
-  elif turn == True and direction == False:
-    print "rev right %d" %duty_cycle
-    G.output(PIN_REV_A, True)
-    G.output(PIN_REV_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle/T_RATIO)
-    PWM_B.ChangeDutyCycle(duty_cycle)
-     
-    time.sleep(DELAY)
-
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
-    G.output(PIN_REV_B, False)
-    G.output(PIN_REV_A, False)
-
-  #move reverse left
-  elif turn == False and direction == False:
-    print "rev left %d" %duty_cycle
-    G.output(PIN_REV_A, True)
-    G.output(PIN_REV_B, True)
-
-    PWM_A.ChangeDutyCycle(duty_cycle)
-    PWM_B.ChangeDutyCycle(duty_cycle/T_RATIO)
-     
-    time.sleep(DELAY)
-    
-    PWM_A.ChangeDutyCycle(0)
-    PWM_B.ChangeDutyCycle(0)
-
-    G.output(PIN_REV_A, False)
-    G.output(PIN_REV_B, False)
-"""
-
 def main():
   global EXIT_SCRIPT
   global ser_dev 
