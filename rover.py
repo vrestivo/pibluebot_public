@@ -30,8 +30,7 @@ ser_dev = None
 SER_READY = False
 
 #declaring 'constants'
-#TODO delete
-BUTTON = 21
+#BUTTON = 21 #shutdown button
 LED_OK = 20 
 
 #pins controlling right motors
@@ -49,10 +48,11 @@ PWM_A = None
 PWM_B = None
 
 #pwm frequency 
-FREQ = 10000
+#FREQ = 10000
+FREQ = 6500
 
 #delay how long to run the motors 
-DELAY = 0.00755555
+DELAY = 0.0125
 
 #define right and left diections
 R = True
@@ -78,10 +78,11 @@ class MoveThread(thr.Thread):
     super(MoveThread, self).__init__()
   def run(self):
     with self._lock:
-      print "Staring "  + self.getName()
-      print "There are %d threads running" %thr.activeCount()
+      #DEBUGGING
+      #print "Staring "  + self.getName()
+      #print "There are %d threads running" %thr.activeCount()
       self._target(self._x, self._y, self._duty_cycle)
-    print "Done with: " + self.getName()
+    #print "Done with: " + self.getName()
 
 
 
@@ -156,9 +157,10 @@ def gpio_setup():
 #set ok led
   G.setup(LED_OK, G.OUT)
 
+#TODO delete not used
 #set interrupt BUTTON
-  G.setup(BUTTON, G.IN, pull_up_down=G.PUD_UP)
-  G.add_event_detect(BUTTON, G.FALLING, callback=button_callback)
+  #G.setup(BUTTON, G.IN, pull_up_down=G.PUD_UP)
+  #G.add_event_detect(BUTTON, G.FALLING, callback=button_callback)
 
 #setup pwm
   PWM_A = G.PWM(PIN_PWM_A, FREQ)
@@ -185,7 +187,7 @@ def move(x=None, y=None, duty_cycle=None):
     PIN_A = PIN_REV_A
     PIN_B = PIN_REV_B
 
-  #TODO left/right ratio
+  #left/right ratio
   if x < 0:
     left_dc = int((x+100)*(1.0)/100*(duty_cycle))
     right_dc = duty_cycle
@@ -193,13 +195,14 @@ def move(x=None, y=None, duty_cycle=None):
     right_dc = int((100-x)*(1.0)/100*(duty_cycle))
     left_dc = duty_cycle	
  
-  print "PIN_A %d, PIN_B %d" %(PIN_A, PIN_B)
-  print "DC: %d, l_dc, %d r_dc %d" %(duty_cycle, left_dc, right_dc)
+  #DEBUGGING
+  #print "PIN_A %d, PIN_B %d" %(PIN_A, PIN_B)
+  #print "DC: %d, l_dc, %d r_dc %d" %(duty_cycle, left_dc, right_dc)
   G.output(PIN_A, True)
   G.output(PIN_B, True)
     
-  PWM_A.ChangeDutyCycle(left_dc)
-  PWM_B.ChangeDutyCycle(right_dc)
+  PWM_A.ChangeDutyCycle(right_dc)
+  PWM_B.ChangeDutyCycle(left_dc)
     
   time.sleep(DELAY)
     
@@ -216,6 +219,22 @@ def blink_ok_led():
   time.sleep(.250)
   G.output(LED_OK, False)
   time.sleep(.250)
+
+def toggle_led(flag):
+  G.output(LED_OK, flag)
+ 
+
+def process_data_string(data_string):
+  if data_string != None and type(data_string) == type(""):
+    l = data_string.split(":")
+    if len(l)==4:
+      print l
+      x = int(l[1])
+      y = int(l[2])
+      r = int(l[3])
+
+      fwdThread = MoveThread(target=move, x=x, y=y, duty_cycle=r, lock=LOCK_MOVE)
+      fwdThread.start()
 
 
 def main():
@@ -237,7 +256,6 @@ def main():
 
 # setup GPIO
   gpio_setup()
-
   
   while not EXIT_SCRIPT:
 
@@ -248,53 +266,25 @@ def main():
 
     while SER_READY == True:
       OK = True
+      toggle_led(OK)
       try:
         c = ser_dev.readline()
-      
-        #FIXME add status for waiting for connection 
-
         # set ok to true opon successful data read
         OK = True
 
-        if OK:
-          G.output(LED_OK, OK)
-        else:
-          G.output(LED_OK, OK)
-
-        if c == "W":
-          print "read in: %s" %c
-          fwdThread = MoveThread(target=move, direction=FWD, duty_cycle=100, lock=LOCK_MOVE)
-          fwdThread.start()
-        elif c == "S":
-          print "read in: %s" %c
-          fwdThread = MoveThread(target=move, direction=REV, duty_cycle=100, lock=LOCK_MOVE)
-          fwdThread.start()
-        elif c == "D": 
-          print "read in: %s" %c
-          fwdThread = MoveThread(target=move, direction=FWD, turn=R,  duty_cycle=100, lock=LOCK_MOVE)
-          fwdThread.start()
-        elif c == "A":
-          print "read in: %s" %c
-          fwdThread = MoveThread(target=move, direction=FWD, turn=L, duty_cycle=100, lock=LOCK_MOVE)
-          fwdThread.start()
-        elif c == "C": 
-          print "read in: %s" %c
-          fwdThread = MoveThread(target=move, direction=REV, turn=R,  duty_cycle=100, lock=LOCK_MOVE)
-          fwdThread.start()
-        elif c == "Z":
-          print "read in: %s" %c
-          fwdThread = MoveThread(target=move, direction=REV, turn=L, duty_cycle=100, lock=LOCK_MOVE)
-          fwdThread.start()
-
-
-        else:
+        if c:
           #reserved for expaded functionality
 	  regex = r"((XYR)([\:][\-]?[\d]+)*)"
+	  regex_off = r"(_off)"
 	  match = re.match(regex, c)
+	  off_match = re.match(regex_off, c)
 	  if match != None:
 	    if match.group(0):
               print "matched: %s" % match.group(0)
-	      process_data_string(match.group(0))	
+	      process_data_string(match.group(0))
+	  elif off_match != None:
+	    print "Shutting down!"
+            terminate()	     	
           pass
  
 
@@ -309,20 +299,6 @@ def main():
         #EXIT_SCRIPT = True  
   if ser_dev != None: 
     ser_dev.close(); 
-
-def process_data_string(data_string):
-  if data_string != None and type(data_string) == type(""):
-    l = data_string.split(":")
-    if len(l)==4:
-      print l
-      x = int(l[1])
-      y = int(l[2])
-      r = int(l[3])
-
-    #TODO
-      fwdThread = MoveThread(target=move, x=x, y=y, duty_cycle=r, lock=LOCK_MOVE)
-      fwdThread.start()
-
    
 
 #run the program
