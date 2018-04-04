@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
-# This is an updated version of Raspberry Pi Zero rover.
-# This version is tailored towards Raspberry Pi Zero W.
-# It no longer used HC-06 serial bluetooth module,
-# since Pi Zero W has an internal bluetooth adapter.
-# Most of the changes will reflect the used of internal
-# Bluetooth interface.
+# This is an updated version of the 
+# Raspberry Pi Zero rover script.
+# This version is tailored towards Raspberry Pi W.
+# The new rover build no longer uses the HC-06 
+# serial Bluetooth module. The communication with
+# the controller app is done through 
+# Pi W's internal Bluetooth adapter.
 
 import os, sys, time, RPi.GPIO as G
 import threading as thr
@@ -21,7 +22,6 @@ OK = False
 
 
 
-
 ######   SERIAL DEVICE SPECS   #####
 #by default Raspbian hciattach is started at this rate
 SER_RATE = 3000000
@@ -29,7 +29,6 @@ SER_RATE = 3000000
 SER_PATH = "/dev/rfcomm0"
 ser_dev = None
 SER_READY = False
-
 
 
 
@@ -61,7 +60,6 @@ DELAY = 0.0125
 # define forward and reverse
 FWD = True
 REV = False
-
 
 
 
@@ -107,20 +105,14 @@ def serial_setup():
         ser_dev.close()
       SER_READY = False
       ser_dev = None
-      #pass
-      #sys.exc_clear()
-      #sys.exit() 
   else:
     print SER_PATH + " does not exist"
     SER_READY = False
     return False
 
-
-
 def gpio_setup():
   #set pin numbering mode to Broadcom
   G.setmode(G.BCM)
-
   global PWM_A
   global PWM_B 
 
@@ -144,7 +136,6 @@ def gpio_setup():
 def move(x=None, y=None, duty_cycle=None):
   global PWM_A
   global PWM_B
-
   PIN_A = None
   PIN_B = None
 
@@ -232,6 +223,7 @@ def process_data_string(data_string):
       fwdThread.start()
 
 
+#####   MAIN   #####
 def main():
   global EXIT_SCRIPT
   global ser_dev 
@@ -240,7 +232,7 @@ def main():
  
 
 #NOTE:  /dev/rfcomm0 will not be open until another
-#	bluetooth device is connected to our pi zero W.
+#	bluetooth device is connected to our Pi W.
 # 	Therefore, we have to keep checking until the
 #	controller device connects to us.
 
@@ -249,7 +241,6 @@ def main():
   gpio_setup()
   
   while not EXIT_SCRIPT:
-
     if ser_dev == None:
       while SER_READY == False and EXIT_SCRIPT == False:
 	blink_ok_led()
@@ -292,7 +283,6 @@ def main():
 
 #run the program
 if __name__ == "__main__":
-
   try:
     main()
     if thr.activeCount() > 1:
@@ -303,8 +293,7 @@ if __name__ == "__main__":
     print "Cleanup complete"
     print "Powering Off!"
     os.system("sudo shutdown -h now")
-    
-    
+        
   except (KeyboardInterrupt, SystemExit):
     #EXIT_SCRIPT = True
     print "Cleaning up..."
